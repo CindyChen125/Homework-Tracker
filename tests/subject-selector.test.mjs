@@ -217,7 +217,7 @@ test('ItemCard can hide only its redundant due label while preserving homework c
   }
 })
 
-test('Today homework calendar shows one wrapping star per test and no deadline dots', async () => {
+test('Today homework calendar shows one green deadline dot per day and one wrapping star per test', async () => {
   const items = [
     { id: 'daily', subject: 'EC(H)', title: 'Daily', type: 'daily', assigned_date: '2026-10-01', due_date: '2026-10-20', notes: null, link: null },
     { id: 'project', subject: 'Math(S)', title: 'Project', type: 'project', assigned_date: '2026-10-01', due_date: '2026-10-20', notes: null, link: null },
@@ -231,9 +231,11 @@ test('Today homework calendar shows one wrapping star per test and no deadline d
   try {
     assert.equal(root.root.findAllByProps({ className: 'mark-star' }).length, 5) // four calendar stars plus legend
     assert.equal(root.root.findAllByProps({ className: 'mark-dot' }).length, 0)
-    assert.ok(root.root.findAll(node => typeof node.props?.['aria-label'] === 'string' && node.props['aria-label'].includes(': 3 tests')).length)
-    assert.ok(root.root.findAll(node => typeof node.props?.['aria-label'] === 'string' && node.props['aria-label'].includes(': 1 test')).length)
-    assert.match(text(root.root), /One star per test/)
+    assert.equal(root.root.findAllByProps({ className: 'mark-deadline' }).length, 2) // one calendar dot plus legend
+    assert.ok(root.root.findAll(node => typeof node.props?.['aria-label'] === 'string' && node.props['aria-label'].includes(': homework due, 3 tests')).length)
+    assert.ok(root.root.findAll(node => typeof node.props?.['aria-label'] === 'string' && node.props['aria-label'].includes(': no homework due, 1 test')).length)
+    assert.match(text(root.root), /Homework due/)
+    assert.match(text(root.root), /Test/)
     const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8')
     assert.match(css, /\.marks\s*\{[^}]*flex-wrap:\s*wrap/)
   } finally { await act(async () => root.unmount()) }

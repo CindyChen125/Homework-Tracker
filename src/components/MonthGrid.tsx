@@ -12,7 +12,7 @@ interface Props {
   onSelect?: (iso: string) => void
 }
 
-/** Monday-first month grid: one star for every test due, with no homework dots. */
+/** Monday-first month grid: one green deadline dot plus one star per test. */
 export default function MonthGrid({ month, items, selected, onSelect }: Props) {
   const today = todayISO()
 
@@ -39,7 +39,9 @@ export default function MonthGrid({ month, items, selected, onSelect }: Props) {
         <div key={i} className="month-head">{w}</div>
       ))}
       {cells.map(({ iso, day, inMonth }) => {
-        const tests = (byDue.get(iso) ?? []).filter((item) => item.type === 'test')
+        const due = byDue.get(iso) ?? []
+        const tests = due.filter((item) => item.type === 'test')
+        const hasDeadline = due.some((item) => item.type !== 'test')
         const holiday = holidayOn(iso)
         const makeup = makeupOn(iso)
         const cls = [
@@ -53,6 +55,7 @@ export default function MonthGrid({ month, items, selected, onSelect }: Props) {
           <>
             <span className={`month-num ${iso === today ? 'today' : ''}`}>{day}</span>
             <span className="marks" aria-hidden="true">
+              {hasDeadline && <span className="mark-deadline" />}
               {tests.map((test) => (
                 <span key={test.id} className="mark-star"><Icon name="star" size={9} stroke={0} /></span>
               ))}
@@ -61,7 +64,8 @@ export default function MonthGrid({ month, items, selected, onSelect }: Props) {
         )
         const note = holiday ? `, ${holiday.name} holiday` : makeup ? ', make-up school day' : ''
         const testLabel = tests.length === 0 ? 'no tests' : `${tests.length} test${tests.length === 1 ? '' : 's'}`
-        const label = `${fmtLong(iso)}: ${testLabel}${note}`
+        const deadlineLabel = hasDeadline ? 'homework due' : 'no homework due'
+        const label = `${fmtLong(iso)}: ${deadlineLabel}, ${testLabel}${note}`
         return onSelect ? (
           <button key={iso} className={cls.join(' ')} onClick={() => onSelect(iso)} aria-label={label} aria-pressed={iso === selected}>
             {body}
@@ -78,8 +82,12 @@ export function Legend() {
   return (
     <div className="legend">
       <span>
+        <span className="mark-deadline" />
+        Homework due
+      </span>
+      <span>
         <span className="mark-star"><Icon name="star" size={11} stroke={0} /></span>
-        One star per test
+        Test
       </span>
       <span>
         <span className="legend-swatch school-swatch" />
@@ -90,9 +98,8 @@ export function Legend() {
         Weekend or holiday
       </span>
       <p className="legend-note">
-        Each star represents one test due that day. Other homework and project deadlines stay in the dated lists beside the
-        calendar. Green days are school days, sand days are weekends and national holidays; a make-up weekend counts as a
-        school day.
+        A green dot means at least one non-test assignment is due. Every star represents one test. Green days are school days,
+        sand days are weekends and national holidays; a make-up weekend counts as a school day.
       </p>
     </div>
   )

@@ -11,6 +11,7 @@ import Post from './pages/Post'
 import People from './pages/People'
 import SchoolCalendar from './pages/SchoolCalendar'
 import News from './pages/News'
+import Feedback from './pages/Feedback'
 import { schoolToday, type BirthdayGreeting, type NewsItem } from './lib/news'
 import { NewsSetupError } from './lib/news-store'
 import Tour, { tourSeen } from './components/Tour'
@@ -19,8 +20,8 @@ import { createAuthSession } from './lib/auth-session'
 import { canAccessRoute } from './lib/access'
 
 // Hash routing: works on any static host and inside WeChat's browser.
-type Route = 'today' | 'schedule' | 'materials' | 'post' | 'people' | 'school-calendar' | 'news'
-const ROUTES: Route[] = ['today', 'schedule', 'materials', 'post', 'people', 'school-calendar', 'news']
+type Route = 'today' | 'schedule' | 'materials' | 'post' | 'people' | 'school-calendar' | 'news' | 'feedback'
+const ROUTES: Route[] = ['today', 'schedule', 'materials', 'post', 'people', 'school-calendar', 'news', 'feedback']
 const readRoute = (): Route => {
   const r = location.hash.replace(/^#\/?/, '').split('?')[0] as Route
   return ROUTES.includes(r) ? r : 'today'
@@ -55,6 +56,7 @@ const NAV: { route: Route; href: string; label: string; icon: IconName; editorOn
   { route: 'school-calendar', href: '#/school-calendar', label: 'School', icon: 'calendar' },
   { route: 'materials', href: '#/materials', label: 'Files', icon: 'folder' },
   { route: 'news', href: '#/news', label: 'News', icon: 'chat' },
+  { route: 'feedback', href: '#/feedback', label: 'Feedback', icon: 'feedback' },
   { route: 'post', href: '#/post', label: 'Add', icon: 'plus', editorOnly: true },
   { route: 'people', href: '#/people', label: 'People', icon: 'user', adminOnly: true },
 ]
@@ -67,6 +69,7 @@ const TITLES: Record<Route, string> = {
   people: 'People · Classboard',
   'school-calendar': 'School Calendar · Classboard',
   news: 'Class News · Classboard',
+  feedback: 'Feedback Center · Classboard',
 }
 
 export default function App() {
@@ -227,6 +230,7 @@ function Classroom({ user, signOut }: { user: Account; signOut: () => Promise<vo
         {route === 'people' && <People data={data} />}
         {route === 'school-calendar' && <SchoolCalendar data={data} />}
         {route === 'news' && <News data={data} />}
+        {route === 'feedback' && <Feedback data={data} />}
       </main>
       {tour && <Tour editor={editor} admin={isAdmin(user)} onClose={() => setTour(false)} />}
     </Sidebar>

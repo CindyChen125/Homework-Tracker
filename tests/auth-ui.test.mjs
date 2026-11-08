@@ -50,10 +50,12 @@ globalThis.authUiStore={
   setRole:async()=>{},setNewsManager:async()=>{},
   deleteUser:async id=>{ state.deleteCalls=(state.deleteCalls??[]).concat(id); if(state.deleteError) throw Error(state.deleteError); state.people=state.people.filter(person=>person.id!==id); return { warning:state.deleteWarning??null } },
   news:{ list:async()=>{ record('news'); return [] },greetings:async()=>{ record('greetings'); return [] } },
+  feedback:{ list:async()=>{ record('feedback'); return [] },create:async()=>'',replies:async()=>[],reply:async()=>{},setStatus:async()=>{},remove:async()=>{} },
 }
 const { default:App }=await import('../src/App.tsx')
 const { default:Post }=await import('../src/pages/Post.tsx')
 const { default:People }=await import('../src/pages/People.tsx')
+const { default:Feedback }=await import('../src/pages/Feedback.tsx')
 const reset=(account=null)=>{ state={ lookup:async()=>account,reads:[] }; location.hash='#/' }
 const text=root=>JSON.stringify(root.toJSON())
 async function mount(){ let root; await act(async()=>{ root=renderer.create(React.createElement(App)) }); return root }
@@ -61,7 +63,7 @@ async function close(root){ await act(async()=>root.unmount()) }
 async function navigate(hash){ await act(async()=>{ location.replace(hash) }) }
 
 test('signed-out deep links expose only authentication and fetch no class data',async()=>{
-  for(const hash of ['#/','#/materials','#/people','#/post','#/news?view=birthdays','#/school-calendar']){
+  for(const hash of ['#/','#/materials','#/people','#/post','#/news?view=birthdays','#/school-calendar','#/feedback']){
     reset(); location.hash=hash
     const root=await mount()
     try {
@@ -114,6 +116,9 @@ test('reader/editor/admin direct routes enforce interface permissions',async()=>
       assert.equal(state.reads.includes('people'),role==='admin')
       await navigate('#/post')
       assert.equal(root.root.findAllByType(Post).length,role==='reader'?0:1)
+      await navigate('#/feedback')
+      assert.equal(root.root.findAllByType(Feedback).length,1)
+      assert.ok(state.reads.includes('feedback'))
       assert.ok(root.root.findAllByType('button').some(b=>b.props['aria-label']==='Sign out'))
     } finally { await close(root) }
   }
@@ -271,7 +276,7 @@ test('unified navigation preserves role filtering and accurate badges at every r
     try {
       const nav=root.root.findByProps({ 'aria-label':'Main navigation' })
       const hrefs=nav.findAllByType('a').map(link=>link.props.href)
-      assert.deepEqual(hrefs,['#/','#/schedule','#/school-calendar','#/materials','#/news',...(role!=='reader'?['#/post']:[]),...(role==='admin'?['#/people']:[])])
+      assert.deepEqual(hrefs,['#/','#/schedule','#/school-calendar','#/materials','#/news','#/feedback',...(role!=='reader'?['#/post']:[]),...(role==='admin'?['#/people']:[])])
       const badges=root.root.findAll(node=>node.type==='span' && node.props['data-role'])
       assert.ok(badges.length>=2)
       for(const badge of badges) {

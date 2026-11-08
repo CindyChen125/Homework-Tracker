@@ -4,6 +4,7 @@ import { DEFAULT_TIMETABLE, type SlotChange } from './schedule'
 import { fetchAllPages } from './pagination'
 import { demoNewsStore, supabaseNewsStore } from './news-store'
 import { demoStudentNotesStore, supabaseStudentNotesStore } from './student-notes-store'
+import { demoFeedbackStore, supabaseFeedbackStore } from './feedback-store'
 
 export type ItemType = 'daily' | 'project' | 'test' | 'other'
 
@@ -60,6 +61,7 @@ export interface Store {
   mode: 'supabase' | 'demo'
   news: import('./news-store').NewsStore
   studentNotes: import('./student-notes-store').StudentNotesStore
+  feedback: import('./feedback-store').FeedbackStore
   list(): Promise<Item[]>
   add(item: NewItem): Promise<void>
   update(id: string, item: NewItem): Promise<void>
@@ -107,6 +109,7 @@ function supabaseStore(sb: SupabaseClient): Store {
     mode: 'supabase',
     news: supabaseNewsStore(sb),
     studentNotes: supabaseStudentNotesStore(sb),
+    feedback: supabaseFeedbackStore(sb),
     async list() {
       return fetchAllPages<Item>(async (from, to) => {
         const { data } = check(await sb.from('items').select('*').order('due_date').order('id').range(from, to))
@@ -291,6 +294,7 @@ function demoStore(): Store {
     mode: 'demo',
     news: demoNewsStore(async () => ({ role: 'admin' })),
     studentNotes: demoStudentNotesStore(async () => ({ id: 'demo', name: 'Demo', role: 'admin' })),
+    feedback: demoFeedbackStore(async () => ({ id: 'demo', name: 'Demo', email: 'demo@classboard', role: 'admin' })),
     async list() {
       return loadItems().sort((a, b) => a.due_date.localeCompare(b.due_date))
     },
