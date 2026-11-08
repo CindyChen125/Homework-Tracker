@@ -27,7 +27,7 @@ registerHooks({
 })
 let state,listener
 const events=new EventTarget(),documentEvents=new EventTarget()
-globalThis.window={ addEventListener:events.addEventListener.bind(events),removeEventListener:events.removeEventListener.bind(events),dispatchEvent:events.dispatchEvent.bind(events),setInterval,clearInterval,scrollTo(){} }
+globalThis.window={ addEventListener:events.addEventListener.bind(events),removeEventListener:events.removeEventListener.bind(events),dispatchEvent:events.dispatchEvent.bind(events),setInterval,clearInterval,scrollTo(){},confirm:()=>true }
 globalThis.document={ documentElement:{ dataset:{ theme:'dark' } },visibilityState:'visible',addEventListener:documentEvents.addEventListener.bind(documentEvents),removeEventListener:documentEvents.removeEventListener.bind(documentEvents) }
 globalThis.location={ hash:'#/',replace(hash){ this.hash=hash; events.dispatchEvent(new Event('hashchange')) } }
 globalThis.localStorage={ getItem:key=>key==='hw-tour-seen'?'1':null,setItem(){} }
@@ -46,7 +46,9 @@ globalThis.authUiStore={
   signOut:async()=>{ state.lookup=async()=>null; listener(false) },
   list:async()=>{ record('items'); return [] },materials:async()=>{ record('materials'); return [] },
   timetable:async()=>{ record('timetable'); return Array.from({ length:5 },()=>Array(9).fill(null)) },changes:async()=>{ record('changes'); return [] },
-  people:async()=>{ record('people'); return [] },
+  people:async()=>{ record('people'); return state.people??[] },
+  setRole:async()=>{},setNewsManager:async()=>{},
+  deleteUser:async id=>{ state.deleteCalls=(state.deleteCalls??[]).concat(id); if(state.deleteError) throw Error(state.deleteError); state.people=state.people.filter(person=>person.id!==id); return { warning:state.deleteWarning??null } },
   news:{ list:async()=>{ record('news'); return [] },greetings:async()=>{ record('greetings'); return [] } },
 }
 const { default:App }=await import('../src/App.tsx')
@@ -115,6 +117,51 @@ test('reader/editor/admin direct routes enforce interface permissions',async()=>
       assert.ok(root.root.findAllByType('button').some(b=>b.props['aria-label']==='Sign out'))
     } finally { await close(root) }
   }
+})
+
+test('admin deletion confirms, prevents self/last-admin deletion, and refreshes People',async()=>{
+  const admin={ id:'admin',email:'admin@synthetic.invalid',name:'Admin',role:'admin' }
+  const otherAdmin={ id:'other-admin',email:'other-admin@synthetic.invalid',name:'Other Admin',role:'admin' }
+  const student={ id:'student',email:'student@synthetic.invalid',name:'Student',role:'reader' }
+  reset(admin); state.people=[admin,otherAdmin,student]
+  const confirmations=[]; window.confirm=message=>{ confirmations.push(message); return true }
+  let root
+  await act(async()=>{ root=renderer.create(React.createElement(People,{ data:{ admin:true,user:admin,newsStatus:'ready' } })) })
+  try {
+    const buttons=()=>root.root.findAllByType('button').filter(button=>button.children.join('')==='Delete user')
+    assert.equal(buttons().length,3)
+    assert.equal(buttons()[0].props.disabled,true,'current administrator cannot delete themselves')
+    assert.equal(buttons()[1].props.disabled,false,'another admin can be deleted while two admins exist')
+    await act(async()=>buttons()[2].props.onClick())
+    assert.deepEqual(state.deleteCalls,['student'])
+    assert.match(confirmations[0],/permanent.*no longer be able to sign in/is)
+    assert.equal(root.root.findAllByProps({ className:'card person-card' }).length,2)
+    assert.equal(root.root.findAllByProps({ className:'person-who' }).some(node=>node.findAllByType('span').some(span=>span.children.includes('student@synthetic.invalid'))),false)
+    assert.match(text(root),/was deleted/)
+  } finally { await close(root) }
+
+  reset(admin); state.people=[admin,student]
+  await act(async()=>{ root=renderer.create(React.createElement(People,{ data:{ admin:true,user:admin,newsStatus:'ready' } })) })
+  try {
+    const deleteButtons=root.root.findAllByType('button').filter(button=>button.children.join('')==='Delete user')
+    assert.equal(deleteButtons[0].props.disabled,true)
+    assert.match(deleteButtons[0].props.title,/own account/)
+  } finally { await close(root) }
+})
+
+test('failed account deletion leaves People consistent and reports the server error',async()=>{
+  const admin={ id:'admin',email:'admin@synthetic.invalid',name:'Admin',role:'admin' }
+  const student={ id:'student',email:'student@synthetic.invalid',name:'Student',role:'reader' }
+  reset(admin); state.people=[admin,student]; state.deleteError='The account is protected.'; window.confirm=()=>true
+  let root
+  await act(async()=>{ root=renderer.create(React.createElement(People,{ data:{ admin:true,user:admin,newsStatus:'ready' } })) })
+  try {
+    const remove=root.root.findAllByType('button').find(button=>button.children.join('')==='Delete user' && !button.props.disabled)
+    await act(async()=>remove.props.onClick())
+    assert.match(text(root),/The account is protected/)
+    assert.match(text(root),/student@synthetic\.invalid/)
+    assert.equal(root.root.findAllByProps({ role:'alert' }).length,1)
+  } finally { await close(root) }
 })
 
 test('matching signup confirmations create an immediate session without an email-confirmation screen',async()=>{

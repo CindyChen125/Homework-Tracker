@@ -37,6 +37,7 @@ globalThis.subjectStore = {
 const { default: Post } = await import('../src/pages/Post.tsx')
 const { default: Materials } = await import('../src/pages/Materials.tsx')
 const { ItemCard, UpcomingCard, ItemRow } = await import('../src/components/ui.tsx')
+const { default: MonthGrid, Legend } = await import('../src/components/MonthGrid.tsx')
 const { SUBJECT_CLASSES, SUBJECT_SETS, subjectOptionLabel, subjectColor, buildMessage, buildWeekMessage } = await import('../src/lib/homework.ts')
 
 // Independent expectations catch incorrect teacher assignments in the shared mapping.
@@ -199,6 +200,43 @@ test('every homework card, row and copied message shows teachers without numeric
     }
     assert.equal(JSON.stringify(item), before)
   }
+})
+
+test('ItemCard can hide only its redundant due label while preserving homework content', async () => {
+  const item = { id: 'due-card', subject: 'EE(S+2)', title: 'Review packet', type: 'test', assigned_date: '2026-10-20', due_date: '2026-10-23', notes: 'Bring a pencil', link: null }
+  for (const showDue of [true, false]) {
+    let root
+    await act(async () => { root = renderer.create(React.createElement(ItemCard, { item, tick: true, showDue })) })
+    try {
+      assert.equal(root.root.findAllByProps({ className: 'due' }).length, showDue ? 1 : 0)
+      assert.match(text(root.root), /EE S\+ · Mr\. Meehan/)
+      assert.match(text(root.root), /Review packet/)
+      assert.match(text(root.root), /Bring a pencil/)
+      assert.equal(root.root.findAllByProps({ role: 'checkbox' }).length, 1)
+    } finally { await act(async () => root.unmount()) }
+  }
+})
+
+test('Today homework calendar shows one wrapping star per test and no deadline dots', async () => {
+  const items = [
+    { id: 'daily', subject: 'EC(H)', title: 'Daily', type: 'daily', assigned_date: '2026-10-01', due_date: '2026-10-20', notes: null, link: null },
+    { id: 'project', subject: 'Math(S)', title: 'Project', type: 'project', assigned_date: '2026-10-01', due_date: '2026-10-20', notes: null, link: null },
+    ...['a', 'b', 'c'].map(id => ({ id, subject: 'EE(H)', title: `Test ${id}`, type: 'test', assigned_date: '2026-10-01', due_date: '2026-10-20', notes: null, link: null })),
+    { id: 'single', subject: 'EC(S)', title: 'One test', type: 'test', assigned_date: '2026-10-01', due_date: '2026-10-21', notes: null, link: null },
+  ]
+  let root
+  await act(async () => { root = renderer.create(React.createElement('div', null,
+    React.createElement(MonthGrid, { month: new Date(2026, 9, 1), items }),
+    React.createElement(Legend))) })
+  try {
+    assert.equal(root.root.findAllByProps({ className: 'mark-star' }).length, 5) // four calendar stars plus legend
+    assert.equal(root.root.findAllByProps({ className: 'mark-dot' }).length, 0)
+    assert.ok(root.root.findAll(node => typeof node.props?.['aria-label'] === 'string' && node.props['aria-label'].includes(': 3 tests')).length)
+    assert.ok(root.root.findAll(node => typeof node.props?.['aria-label'] === 'string' && node.props['aria-label'].includes(': 1 test')).length)
+    assert.match(text(root.root), /One star per test/)
+    const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8')
+    assert.match(css, /\.marks\s*\{[^}]*flex-wrap:\s*wrap/)
+  } finally { await act(async () => root.unmount()) }
 })
 
 test('Other is always a standalone neutral subject and saves unchanged', async () => {

@@ -20,6 +20,7 @@ function PeopleManager({ data }: { data: AppData }) {
   const [people, setPeople] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
 
   const load = async () => {
@@ -40,7 +41,7 @@ function PeopleManager({ data }: { data: AppData }) {
   const change = async (person: Account, role: Role) => {
     if (person.role === role) return
     setBusy(person.id)
-    setErr(null)
+    setErr(null); setNotice(null)
     try {
       await store.setRole(person.id, role)
       setPeople((list) => list.map((p) => (p.id === person.id ? { ...p, role } : p)))
@@ -52,7 +53,7 @@ function PeopleManager({ data }: { data: AppData }) {
   }
 
   const changeNewsPermission = async (person: Account, allowed: boolean) => {
-    setBusy(person.id); setErr(null)
+    setBusy(person.id); setErr(null); setNotice(null)
     try {
       await store.setNewsManager(person.id, allowed)
       setPeople(list => list.map(p => p.id === person.id ? { ...p, news_manager: allowed } : p))
@@ -60,7 +61,28 @@ function PeopleManager({ data }: { data: AppData }) {
     finally { setBusy(null) }
   }
 
+  const remove = async (person: Account) => {
+    if (busy || person.id === data.user?.id) return
+    const label = person.name ? `${person.name} (${person.email})` : person.email
+    const confirmed = window.confirm(
+      `Delete ${label}?\n\nThis is permanent. The account will be removed from Supabase Auth and the user will no longer be able to sign in. Their personal Student Notes and note files will also be removed. Shared class homework and materials will stay.`,
+    )
+    if (!confirmed) return
+    setBusy(person.id); setErr(null); setNotice(null)
+    try {
+      const result = await store.deleteUser(person.id)
+      setPeople((list) => list.filter((account) => account.id !== person.id))
+      await load()
+      setNotice(`${label} was deleted.${result.warning ? ` ${result.warning}` : ''}`)
+    } catch (e) {
+      setErr((e as Error).message)
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const editors = people.filter((p) => p.role !== 'reader')
+  const adminCount = people.filter((p) => p.role === 'admin').length
 
   return (
     <>
@@ -78,7 +100,8 @@ function PeopleManager({ data }: { data: AppData }) {
         homework, change the timetable and upload files. They see the change the next time they open the site.
       </p>
 
-      {err && <div className="alert error">{err}</div>}
+      {err && <div className="alert error" role="alert">{err}</div>}
+      {notice && <div className="alert" role="status">{notice}</div>}
 
       <section className="stack" style={{ marginTop: 20 }}>
         <SectionHeading count={people.length}>Accounts</SectionHeading>
@@ -115,6 +138,18 @@ function PeopleManager({ data }: { data: AppData }) {
                   onChange={e => changeNewsPermission(p, e.target.checked)} />
                 <span>News manager<span className="small muted">{p.role === 'admin' ? 'Included for admins' : 'Class News and private birthday settings only; does not grant homework editing'}</span></span>
               </label>
+              <button
+                className="btn danger person-delete"
+                disabled={busy !== null || p.id === data.user?.id || (p.role === 'admin' && adminCount <= 1)}
+                title={p.id === data.user?.id
+                  ? 'You cannot delete your own account'
+                  : p.role === 'admin' && adminCount <= 1
+                    ? 'The last administrator cannot be deleted'
+                    : `Permanently delete ${p.name || p.email}`}
+                onClick={() => remove(p)}
+              >
+                {busy === p.id ? 'Deleting…' : 'Delete user'}
+              </button>
             </div>
           ))
         )}

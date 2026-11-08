@@ -213,6 +213,19 @@ h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
 .btn-primary:hover { filter: brightness(1.07); }
 .btn-primary:disabled { opacity: 0.6; }
 .head-actions .btn-primary { min-height: 44px; font-size: 15px; border-radius: var(--radius-sm); }
+.btn.danger {
+  min-height: 40px;
+  padding: 0 13px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line));
+  border-radius: var(--radius-sm);
+  color: var(--warn);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+.btn.danger:hover:not(:disabled) { background: var(--warn-soft); }
+.btn.danger:disabled { opacity: 0.5; cursor: default; }
 
 .btn-secondary {
   min-height: 52px;
@@ -423,8 +436,8 @@ h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 48px;
-  padding: 0;
+  min-height: 48px;
+  padding: 3px 1px;
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
@@ -458,18 +471,17 @@ h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
 }
 .month-num.today { background: var(--accent); color: var(--on-accent); font-weight: 700; }
 .marks {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 4px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  align-content: center;
   justify-content: center;
-  gap: 3px;
-  height: 9px;
+  gap: 1px;
+  width: 100%;
+  min-height: 9px;
 }
 .mark-dot { width: 5px; height: 5px; border-radius: 50%; }
-.mark-star { display: flex; color: var(--warn); }
+.mark-star { display: flex; flex: 0 0 auto; color: var(--warn); }
 .mark-star svg { fill: currentColor; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; padding-top: 14px; border-top: 1px solid var(--line-soft); font-size: 12px; color: var(--muted); }
@@ -1019,4 +1031,5 @@ button.week-cell:hover { background: var(--surface-2); }
 .person-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; }
 .person-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .person-roles { flex: 0 0 auto; min-width: 240px; }
+.person-delete { flex: 0 0 auto; }
 .seg button:disabled { opacity: 0.55; cursor: default; }

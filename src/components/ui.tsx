@@ -123,7 +123,7 @@ function Attachments({ files }: { files: Material[] }) {
 }
 
 /** Homework card: subject, due date, title, and the student's own tick. */
-export function ItemCard({ item, files = [], tick }: { item: Item; files?: Material[]; tick?: boolean }) {
+export function ItemCard({ item, files = [], tick, showDue = true }: { item: Item; files?: Material[]; tick?: boolean; showDue?: boolean }) {
   const done = useDone().has(item.id)
   const today = todayISO()
   return (
@@ -145,7 +145,7 @@ export function ItemCard({ item, files = [], tick }: { item: Item; files?: Mater
             <TypeTag type={item.type} />
             <SubjectLabel subject={item.subject} />
           </span>
-          <span className="due">{fmtDue(today, item.due_date)}</span>
+          {showDue && <span className="due">{fmtDue(today, item.due_date)}</span>}
         </div>
         <div className="card-title">{item.title}</div>
         {item.notes && <div className="card-notes">{item.notes}</div>}

@@ -117,7 +117,7 @@ export default function Today({ data }: { data: AppData }) {
             ) : dueList.length === 0 ? (
               <div className="empty">{isToday ? `Nothing to hand in ${listWhen}.` : 'Nothing due on this day.'}</div>
             ) : (
-              dueList.map((i) => <ItemCard key={i.id} item={i} files={filesFor(i.id)} tick />)
+              dueList.map((i) => <ItemCard key={i.id} item={i} files={filesFor(i.id)} tick showDue={false} />)
             )}
           </section>
 
@@ -140,7 +140,7 @@ export default function Today({ data }: { data: AppData }) {
                         <time dateTime={date}>{parseISO(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</time>
                       </h3>
                       {groupBySubject(items).flatMap(([, list]) => list).map((i) => (
-                        <ItemCard key={i.id} item={i} files={filesFor(i.id)} tick />
+                        <ItemCard key={i.id} item={i} files={filesFor(i.id)} tick showDue={false} />
                       ))}
                     </section>
                   ))

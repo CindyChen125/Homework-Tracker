@@ -25,6 +25,12 @@ registerHooks({
 const user = { id: 'student-id', email: 'student@example.invalid' }
 let state
 globalThis.currentUserTestClient = {
+  functions: {
+    async invoke(name, options) {
+      state.functionCall = { name, options }
+      return state.functionResponse ?? { data: { warning: null }, error: null }
+    },
+  },
   auth: {
     getSession: async () => state.session,
     onAuthStateChange(listener) { state.authListener = listener; return { data: { subscription: { unsubscribe() { state.unsubscribed = true } } } } },
@@ -160,17 +166,17 @@ test('open registration sends only the display name, never permissions', async (
   reset()
   state.signupSession = { user }
   assert.equal(await store.signUp('new@synthetic.invalid','synthetic-password','New reader'),undefined)
-  assert.deepEqual(state.signup,{ email:'new@synthetic.invalid',password:'synthetic-password',options:{ data:{ name:'New reader' },emailRedirectTo:'https://jacky-chy-chen.github.io/Homework-Tracker/' } })
+  assert.deepEqual(state.signup,{ email:'new@synthetic.invalid',password:'synthetic-password',options:{ data:{ name:'New reader' },emailRedirectTo:'https://cindychen125.github.io/Homework-Tracker/' } })
 })
 
 test('signup always redirects to the complete deployment root without altering verification or handling', async () => {
   reset()
   state.signupSession = { user }
-  for (const href of ['https://jacky-chy-chen.github.io/Homework-Tracker/#/post', 'http://localhost:5199/#/']) {
+  for (const href of ['https://cindychen125.github.io/Homework-Tracker/#/post', 'http://localhost:5199/#/']) {
     globalThis.location = new URL(href)
     assert.equal(await store.signUp('new@synthetic.invalid', 'password', 'Reader'), undefined)
     const redirect = new URL(state.signup.options.emailRedirectTo)
-    assert.equal(redirect.href, 'https://jacky-chy-chen.github.io/Homework-Tracker/')
+    assert.equal(redirect.href, 'https://cindychen125.github.io/Homework-Tracker/')
     assert.equal(redirect.hash, '')
     assert.deepEqual(state.signup.options.data, { name: 'Reader' })
   }
@@ -179,4 +185,16 @@ test('signup always redirects to the complete deployment root without altering v
   state.signupError = { message: 'Signup rejected' }
   await assert.rejects(() => store.signUp('new@synthetic.invalid', 'password', 'Reader'), /Signup rejected/)
   delete globalThis.location
+})
+
+test('account deletion sends only the target ID to the protected Edge Function and surfaces server errors', async () => {
+  reset()
+  assert.deepEqual(await store.deleteUser('target-id'), { warning: null })
+  assert.deepEqual(state.functionCall, { name: 'delete-user', options: { body: { targetUserId: 'target-id' } } })
+
+  state.functionResponse = {
+    data: null,
+    error: { context: { json: async () => ({ error: 'The last remaining administrator cannot be deleted.' }) } },
+  }
+  await assert.rejects(() => store.deleteUser('target-id'), /last remaining administrator/)
 })

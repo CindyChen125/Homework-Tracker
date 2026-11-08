@@ -49,6 +49,10 @@ export interface Account {
   news_manager?: boolean
 }
 
+export interface DeleteUserResult {
+  warning?: string | null
+}
+
 export const canEdit = (a: Account | null) => a?.role === 'editor' || a?.role === 'admin'
 export const isAdmin = (a: Account | null) => a?.role === 'admin'
 
@@ -84,6 +88,8 @@ export interface Store {
   people(): Promise<Account[]>
   setRole(id: string, role: Role): Promise<void>
   setNewsManager(id: string, allowed: boolean): Promise<void>
+  /** Permanently removes an Auth account through the admin-only Edge Function. */
+  deleteUser(id: string): Promise<DeleteUserResult>
 }
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
@@ -192,7 +198,7 @@ function supabaseStore(sb: SupabaseClient): Store {
       // No hash route here: Supabase uses the fragment to return session tokens.
       const res = check(await sb.auth.signUp({ email, password, options: {
         data: { name },
-        emailRedirectTo: 'https://jacky-chy-chen.github.io/Homework-Tracker/',
+        emailRedirectTo: 'https://cindychen125.github.io/Homework-Tracker/',
       } }))
       if (!res.data.session) {
         throw new Error('Your account was created, but Classboard could not sign you in. Try signing in, and ask an administrator to confirm that email confirmation is disabled.')
@@ -214,6 +220,20 @@ function supabaseStore(sb: SupabaseClient): Store {
     },
     async setNewsManager(id, allowed) {
       check(await sb.from('profiles').update({ news_manager: allowed }).eq('id', id).select('id').single())
+    },
+    async deleteUser(id) {
+      const { data, error } = await sb.functions.invoke<DeleteUserResult>('delete-user', {
+        body: { targetUserId: id },
+      })
+      if (error) {
+        let message = 'The account could not be deleted. Please retry.'
+        try {
+          const body = await error.context?.json()
+          if (typeof body?.error === 'string') message = body.error
+        } catch {}
+        throw new Error(message)
+      }
+      return data ?? {}
     },
   }
 }
@@ -346,6 +366,9 @@ function demoStore(): Store {
     async setRole() {},
     async setNewsManager(personId, allowed) {
       write('hw-demo-news-permissions', { ...read<Record<string, boolean>>('hw-demo-news-permissions', {}), [personId]: allowed })
+    },
+    async deleteUser() {
+      throw new Error('Connect Supabase to delete accounts.')
     },
   }
 }

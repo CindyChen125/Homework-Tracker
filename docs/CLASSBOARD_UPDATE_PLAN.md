@@ -2,7 +2,7 @@
 
 ## Project Information
 
-Repository: https://github.com/Jacky-Chy-Chen/Homework-Tracker
+Repository: https://github.com/CindyChen125/Homework-Tracker
 
 Classboard is an existing React, TypeScript, Vite, and Supabase
 application for managing homework and class information.
