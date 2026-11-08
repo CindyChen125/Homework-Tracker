@@ -158,22 +158,24 @@ test('signout is local and errors are not silently ignored', async () => {
 
 test('open registration sends only the display name, never permissions', async () => {
   reset()
-  assert.deepEqual(await store.signUp('new@synthetic.invalid','synthetic-password','New reader'),{ needsConfirmation:true })
+  state.signupSession = { user }
+  assert.equal(await store.signUp('new@synthetic.invalid','synthetic-password','New reader'),undefined)
   assert.deepEqual(state.signup,{ email:'new@synthetic.invalid',password:'synthetic-password',options:{ data:{ name:'New reader' },emailRedirectTo:'https://jacky-chy-chen.github.io/Homework-Tracker/' } })
 })
 
 test('signup always redirects to the complete deployment root without altering verification or handling', async () => {
   reset()
+  state.signupSession = { user }
   for (const href of ['https://jacky-chy-chen.github.io/Homework-Tracker/#/post', 'http://localhost:5199/#/']) {
     globalThis.location = new URL(href)
-    assert.deepEqual(await store.signUp('new@synthetic.invalid', 'password', 'Reader'), { needsConfirmation: true })
+    assert.equal(await store.signUp('new@synthetic.invalid', 'password', 'Reader'), undefined)
     const redirect = new URL(state.signup.options.emailRedirectTo)
     assert.equal(redirect.href, 'https://jacky-chy-chen.github.io/Homework-Tracker/')
     assert.equal(redirect.hash, '')
     assert.deepEqual(state.signup.options.data, { name: 'Reader' })
   }
-  state.signupSession = { user }
-  assert.deepEqual(await store.signUp('new@synthetic.invalid', 'password', 'Reader'), { needsConfirmation: false })
+  state.signupSession = null
+  await assert.rejects(() => store.signUp('new@synthetic.invalid', 'password', 'Reader'), /account was created.*could not sign you in/i)
   state.signupError = { message: 'Signup rejected' }
   await assert.rejects(() => store.signUp('new@synthetic.invalid', 'password', 'Reader'), /Signup rejected/)
   delete globalThis.location

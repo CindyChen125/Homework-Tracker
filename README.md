@@ -30,7 +30,7 @@ One sidebar serves every signed-in page; there is no bottom navigation. Desktop 
 
 Desktop and tablet preferences are saved separately in localStorage. Overlay navigation closes on selection, backdrop click or Escape, traps focus, locks background scrolling and returns focus to the opener. Guide, Theme, account information and Sign out stay near the bottom; short sidebars scroll. Role badges use the actual profile role, including **Admin** on narrow screens. See [sidebar behavior and verification](docs/SIDEBAR.md).
 
-**Manual backend setup is required:** follow [Authentication deployment and policy review](docs/AUTHENTICATION_DEPLOYMENT.md). The new migration is prepared, not applied. Frontend deployment alone does not close old direct API/public-file access. Leave open registration enabled; preserve your chosen email-confirmation setting and configure confirmation redirects if enabled.
+**Manual backend setup is required:** follow [Authentication deployment and policy review](docs/AUTHENTICATION_DEPLOYMENT.md). The new migration is prepared, not applied. Frontend deployment alone does not close old direct API/public-file access. Leave open registration enabled. The current signup flow expects **Confirm email** to be disabled so a new student receives an authenticated session immediately.
 
 Open registration is not a class-membership check: anyone who registers can read the class content. Do not treat the login page as an invitation-only boundary.
 

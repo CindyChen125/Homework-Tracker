@@ -38,7 +38,11 @@ globalThis.authUiStore={
   currentUser:()=>state.lookup(),
   subscribeAuth:fn=>{ listener=fn; return()=>{ listener=null } },
   signIn:async()=>{ if(state.signInError) throw Error('Invalid credentials'); state.lookup=async()=>reader; listener(true) },
-  signUp:async(email,password,name)=>{ state.signup={ email,password,name }; return { needsConfirmation:true } },
+  signUp:async(email,password,name)=>{
+    state.signup={ email,password,name }; state.signupCalls=(state.signupCalls??0)+1
+    if(state.signupPending) await state.signupPending
+    state.lookup=async()=>reader; listener(true)
+  },
   signOut:async()=>{ state.lookup=async()=>null; listener(false) },
   list:async()=>{ record('items'); return [] },materials:async()=>{ record('materials'); return [] },
   timetable:async()=>{ record('timetable'); return Array.from({ length:5 },()=>Array(9).fill(null)) },changes:async()=>{ record('changes'); return [] },
@@ -113,20 +117,65 @@ test('reader/editor/admin direct routes enforce interface permissions',async()=>
   }
 })
 
-test('registration stays available and confirmation does not reveal class data',async()=>{
+test('matching signup confirmations create an immediate session without an email-confirmation screen',async()=>{
   reset(); const root=await mount()
   try {
     await act(async()=>root.root.findAllByType('button').find(b=>b.children.join('')==='Sign up').props.onClick())
     const inputs=root.root.findAllByType('input')
     await act(async()=>{
       inputs[0].props.onChange({ target:{ value:'New student' } })
-      inputs[1].props.onChange({ target:{ value:'new@synthetic.invalid' } })
-      inputs[2].props.onChange({ target:{ value:'synthetic-password' } })
+      inputs[1].props.onChange({ target:{ value:'  New@Synthetic.Invalid  ' } })
+      inputs[2].props.onChange({ target:{ value:'new@synthetic.invalid' } })
+      inputs[3].props.onChange({ target:{ value:'synthetic-password' } })
+      inputs[4].props.onChange({ target:{ value:'synthetic-password' } })
     })
     await act(async()=>root.root.findByType('form').props.onSubmit({ preventDefault(){} }))
-    assert.match(text(root),/Check your email/)
-    assert.deepEqual(state.signup,{ email:'new@synthetic.invalid',password:'synthetic-password',name:'New student' })
-    assert.deepEqual(state.reads,[])
+    assert.deepEqual(state.signup,{ email:'New@Synthetic.Invalid',password:'synthetic-password',name:'New student' })
+    assert.match(text(root),/Coming Up/)
+    assert.doesNotMatch(text(root),/Check your email/)
+  } finally { await close(root) }
+})
+
+test('signup rejects mismatched or empty confirmations before calling Supabase',async()=>{
+  for(const [confirmEmail,confirmPassword,message] of [
+    ['other@synthetic.invalid','synthetic-password','Email addresses do not match.'],
+    ['','synthetic-password','Confirm your email address.'],
+    ['new@synthetic.invalid','different-password','Passwords do not match.'],
+    ['new@synthetic.invalid','','Confirm your password.'],
+  ]){
+    reset(); const root=await mount()
+    try {
+      await act(async()=>root.root.findAllByType('button').find(b=>b.children.join('')==='Sign up').props.onClick())
+      const inputs=root.root.findAllByType('input')
+      await act(async()=>{
+        inputs[0].props.onChange({ target:{ value:'New student' } })
+        inputs[1].props.onChange({ target:{ value:'new@synthetic.invalid' } })
+        inputs[2].props.onChange({ target:{ value:confirmEmail } })
+        inputs[3].props.onChange({ target:{ value:'synthetic-password' } })
+        inputs[4].props.onChange({ target:{ value:confirmPassword } })
+      })
+      await act(async()=>root.root.findByType('form').props.onSubmit({ preventDefault(){} }))
+      assert.match(text(root),new RegExp(message.replace(/[.]/g,'\\.')))
+      assert.equal(state.signupCalls,undefined)
+    } finally { await close(root) }
+  }
+})
+
+test('password visibility is keyboard-operable and a busy signup cannot submit twice',async()=>{
+  reset(); let release; state.signupPending=new Promise(resolve=>{ release=resolve })
+  const root=await mount()
+  try {
+    await act(async()=>root.root.findAllByType('button').find(b=>b.children.join('')==='Sign up').props.onClick())
+    const inputs=root.root.findAllByType('input')
+    await act(async()=>{
+      for(const [input,value] of inputs.map((input,index)=>[input,['Student','s@invalid.test','s@invalid.test','password','password'][index]])) input.props.onChange({ target:{ value } })
+      root.root.findAllByType('button').find(b=>b.children.join('')==='Show password').props.onClick()
+    })
+    assert.equal(root.root.findAllByProps({ type:'text' }).filter(input=>input.props.autoComplete?.includes('password')).length,2)
+    const submit=root.root.findByType('form').props.onSubmit
+    let first; await act(async()=>{ first=submit({ preventDefault(){} }); submit({ preventDefault(){} }) })
+    assert.equal(state.signupCalls,1)
+    await act(async()=>{ release(); await first })
   } finally { await close(root) }
 })
 

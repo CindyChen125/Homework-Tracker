@@ -78,7 +78,7 @@ export interface Store {
   subscribeAuth(listener: (signedIn: boolean) => void): () => void
   signIn(email: string, password: string): Promise<void>
   /** Creates a reader account. An admin can raise it to editor afterwards. */
-  signUp(email: string, password: string, name: string): Promise<{ needsConfirmation: boolean }>
+  signUp(email: string, password: string, name: string): Promise<void>
   signOut(): Promise<void>
   /** Everyone with an account, for the admin's People page. */
   people(): Promise<Account[]>
@@ -194,8 +194,9 @@ function supabaseStore(sb: SupabaseClient): Store {
         data: { name },
         emailRedirectTo: 'https://jacky-chy-chen.github.io/Homework-Tracker/',
       } }))
-      // With "Confirm email" off, Supabase signs the person in straight away.
-      return { needsConfirmation: !res.data.session }
+      if (!res.data.session) {
+        throw new Error('Your account was created, but Classboard could not sign you in. Try signing in, and ask an administrator to confirm that email confirmation is disabled.')
+      }
     },
     subscribeAuth(listener) {
       const { data } = sb.auth.onAuthStateChange((_event, session) => listener(!!session))
