@@ -22,7 +22,7 @@ export default function SchoolCalendar({ data }: { data: AppData }) {
   return (
     <>
       <TopBar user={data.user} />
-      <header className="page-head">
+      <header className="page-head" data-tour="school">
         <div className="page-head-text">
           <h1>School Calendar</h1>
         </div>

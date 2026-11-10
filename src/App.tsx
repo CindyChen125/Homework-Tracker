@@ -106,7 +106,7 @@ function Classroom({ user, signOut }: { user: Account; signOut: () => Promise<vo
   const newsRequest = useRef(0)
   // The guide opens itself the first time someone lands here, and lives behind
   // the Guide button after that.
-  const [tour, setTour] = useState(() => !tourSeen())
+  const [tour, setTour] = useState(() => !tourSeen(user.id))
 
   const fail = (e: unknown) => setError((e as Error).message)
 
@@ -192,15 +192,12 @@ function Classroom({ user, signOut }: { user: Account; signOut: () => Promise<vo
       legacy()
       setRoute(readRoute())
     }
-    const openGuide = () => setTour(true)
-    window.addEventListener('classboard:guide', openGuide)
     window.addEventListener('hashchange', onHash)
     reload()
     reloadSchedule()
     reloadMaterials()
     return () => {
       window.removeEventListener('hashchange', onHash)
-      window.removeEventListener('classboard:guide', openGuide)
     }
   }, [reload, reloadSchedule, reloadMaterials])
 
@@ -232,7 +229,7 @@ function Classroom({ user, signOut }: { user: Account; signOut: () => Promise<vo
         {route === 'news' && <News data={data} />}
         {route === 'feedback' && <Feedback data={data} />}
       </main>
-      {tour && <Tour editor={editor} admin={isAdmin(user)} onClose={() => setTour(false)} />}
+      {tour && <Tour userId={user.id} editor={editor} admin={isAdmin(user)} onClose={() => setTour(false)} />}
     </Sidebar>
   )
 }

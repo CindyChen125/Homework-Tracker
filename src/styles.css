@@ -997,7 +997,9 @@ button.week-cell:hover { background: var(--surface-2); }
 /* ---------- Guided tour ---------- */
 
 .tour { position: fixed; inset: 0; z-index: 90; }
-.tour-shade { position: absolute; inset: 0; background: rgba(8, 12, 16, 0.55); }
+/* Catches clicks. It dims only when nothing is lit; otherwise the hole's shadow does, so the lit element stays bright. */
+.tour-shade { position: absolute; inset: 0; }
+.tour-shade.dim { background: rgba(8, 12, 16, 0.55); }
 /* The lit element: a hole punched through the shade by one very large shadow. */
 .tour-hole {
   position: fixed;

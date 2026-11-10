@@ -24,7 +24,7 @@ export default function News({ data }: { data: AppData }) {
   return (
     <>
       <TopBar user={data.user} />
-      <header className="page-head"><div className="page-head-text"><h1>Class News</h1></div></header>
+      <header className="page-head" data-tour="news"><div className="page-head-text"><h1>Class News</h1></div></header>
       <p className="lead">Announcements, achievements and updates from the class.</p>
       <div className="news-toolbar">
         <a className="link-btn" href="#/">Back to homework</a>
