@@ -1,35 +1,31 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Icon from './Icon'
 
-const SEEN = 'hw-tour-seen'
+const seenKey = (userId: string) => `hw-tour-seen:${userId}`
 
-export const tourSeen = () => {
+export const tourSeen = (userId: string) => {
   try {
-    return localStorage.getItem(SEEN) === '1'
+    return localStorage.getItem(seenKey(userId)) === '1'
   } catch {
     return true
   }
 }
 
-const markSeen = () => {
+const markSeen = (userId: string) => {
   try {
-    localStorage.setItem(SEEN, '1')
+    localStorage.setItem(seenKey(userId), '1')
   } catch {
-    // A private window can refuse; the guide simply offers itself again.
   }
 }
 
 interface Step {
-  /** Where the step happens; the guide moves there itself. */
   route?: string
-  /** What to light up. Left out for a step shown in the middle of the screen. */
   target?: string
   title: string
   body: string
-  /** Skipped for a reader who is not signed in as an editor. */
   editorOnly?: boolean
-  /** Only the person who hands out permissions sees this one. */
   adminOnly?: boolean
+  menuBody?: string
 }
 
 const STEPS: Step[] = [
@@ -53,7 +49,7 @@ const STEPS: Step[] = [
     route: '#/',
     target: '[data-tour="calendar"]',
     title: 'The month at a glance',
-    body: 'A star marks a test, and a dot marks a project or a longer piece of homework, in its subject’s colour. Green days are school days, sand days are weekends and holidays. Tap any day to read it on the left.',
+    body: 'A star marks a test, and a dot marks a project or a longer piece of homework, in its subject’s colour. Green days are school days, sand days are weekends and holidays. Tap any day to see its homework.',
   },
   {
     route: '#/',
@@ -66,20 +62,38 @@ const STEPS: Step[] = [
     route: '#/schedule',
     target: '[data-tour="slots"]',
     title: 'The timetable',
-    body: 'Pick a day here and its lessons appear below with their bell times. Tap a lesson to swap it with another one — the same day or a different day — or to cancel it, either just for that day or every week from now on.',
-    editorOnly: true,
+    body: 'Pick a day here and its lessons appear below with their bell times. Any change the teacher makes shows up here.',
   },
   {
     route: '#/schedule',
-    target: '[data-tour="slots"]',
-    title: 'The timetable',
-    body: 'Pick a day here and its lessons appear below with their bell times. Any change the teacher makes shows up here, and in the group message.',
+    target: '[data-tour="lessons"]',
+    title: 'Changing a lesson',
+    body: 'Tap a lesson to swap it with another one — the same day or a different day — or to cancel it, either just for that day or every week from now on. The group message picks the change up too.',
+    editorOnly: true,
+  },
+  {
+    route: '#/school-calendar',
+    target: '[data-tour="school"]',
+    title: 'The school calendar',
+    body: 'School dates and events, month by month. Homework deadlines stay on Today.',
   },
   {
     route: '#/materials',
     target: '[data-tour="files"]',
     title: 'Files and notes',
     body: 'Review materials, worksheets and notes live here, grouped by subject, so nobody has to scroll back through the chat to find them.',
+  },
+  {
+    route: '#/news',
+    target: '[data-tour="news"]',
+    title: 'Class news',
+    body: 'Announcements, achievements and updates from the class. Filter by category to find a post.',
+  },
+  {
+    route: '#/feedback',
+    target: '[data-tour="feedback"]',
+    title: 'Feedback',
+    body: 'Report a problem, suggest an improvement or follow up on an earlier report.',
   },
   {
     route: '#/post',
@@ -96,9 +110,10 @@ const STEPS: Step[] = [
     adminOnly: true,
   },
   {
-    target: '[data-tour="help"]',
+    target: '[data-tour="guide"], [data-tour="menu"]',
     title: 'That is everything',
     body: 'Open this guide again from here whenever you need it.',
+    menuBody: 'Open the menu here, then choose Guide whenever you want this tour again.',
   },
 ]
 
@@ -106,26 +121,29 @@ const STEPS: Step[] = [
 const findTarget = (sel: string) =>
   [...document.querySelectorAll<HTMLElement>(sel)].find((el) => !el.closest('[inert],[hidden]') && (el.offsetParent !== null || el === document.body)) ?? null
 
+const routeOf = (hash: string) => hash.replace(/^#\/?/, '').split('?')[0]
+
 interface Rect { top: number; left: number; width: number; height: number }
 
-export default function Tour({ editor, admin, onClose }: { editor: boolean; admin: boolean; onClose: () => void }) {
+export default function Tour({ userId, editor, admin, onClose }: { userId: string; editor: boolean; admin: boolean; onClose: () => void }) {
   const steps = STEPS.filter((s) => (!s.editorOnly || editor) && (!s.adminOnly || admin))
-    // The timetable has an editor version and a reader version; keep one.
-    .filter((s, i, all) => !(s.title === 'The timetable' && all.some((o, j) => j < i && o.title === 'The timetable')))
   const [n, setN] = useState(0)
   const [rect, setRect] = useState<Rect | null>(null)
+  const [cardH, setCardH] = useState(210)
   const step = steps[n]
   const cardRef = useRef<HTMLDivElement>(null)
 
   const close = useCallback(() => {
-    markSeen()
+    markSeen(userId)
     onClose()
-  }, [onClose])
+  }, [onClose, userId])
 
-  // Move to the step's page, wait for it to render, then light up its target.
   useEffect(() => {
     let alive = true
-    if (step.route && !location.hash.startsWith(step.route)) location.hash = step.route
+    if (step.route && routeOf(location.hash) !== routeOf(step.route)) {
+      location.hash = step.route
+      setRect(null)
+    }
     if (!step.target) {
       setRect(null)
       return
@@ -134,13 +152,11 @@ export default function Tour({ editor, admin, onClose }: { editor: boolean; admi
       if (!alive) return
       const el = findTarget(step.target!)
       if (!el) {
-        // The page may still be rendering; give it a few frames, then skip the step.
-        if (tries > 0) return void setTimeout(() => look(tries - 1), 80)
-        return setRect(null)
+        setRect(null)
+        if (tries > 0) setTimeout(() => look(tries - 1), 80)
+        return
       }
       el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-      // Measure once the scroll has started and again once it has finished, so a
-      // quick Next during the animation still leaves the hole in the right place.
       for (const wait of [60, 320, 700]) {
         setTimeout(() => {
           if (!alive) return
@@ -149,7 +165,7 @@ export default function Tour({ editor, admin, onClose }: { editor: boolean; admi
         }, wait)
       }
     }
-    look(10)
+    look(150)
     return () => {
       alive = false
     }
@@ -172,8 +188,32 @@ export default function Tour({ editor, admin, onClose }: { editor: boolean; admi
     }
   }, [step])
 
+  // Move focus into the guide, keep it there, and hand it back when the guide closes.
+  useEffect(() => {
+    const before = document.activeElement as HTMLElement | null
+    cardRef.current?.querySelector<HTMLElement>('.btn-primary')?.focus()
+    return () => {
+      if (before?.isConnected) before.focus()
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    setCardH(cardRef.current?.offsetHeight ?? 210)
+  }, [n])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') {
+        const buttons = [...(cardRef.current?.querySelectorAll<HTMLElement>('button') ?? [])]
+        const first = buttons[0]
+        const last = buttons[buttons.length - 1]
+        const here = document.activeElement
+        if (!first || !last) return
+        if (!cardRef.current!.contains(here) || (e.shiftKey && here === first) || (!e.shiftKey && here === last)) {
+          e.preventDefault()
+          ;(e.shiftKey ? last : first).focus()
+        }
+      }
       if (e.key === 'Escape') close()
       if (e.key === 'ArrowRight') setN((i) => Math.min(i + 1, steps.length - 1))
       if (e.key === 'ArrowLeft') setN((i) => Math.max(i - 1, 0))
@@ -187,25 +227,35 @@ export default function Tour({ editor, admin, onClose }: { editor: boolean; admi
     ? { top: rect.top - pad, left: rect.left - pad, width: rect.width + pad * 2, height: rect.height + pad * 2 }
     : null
 
-  // The card parks at the foot of the screen, or at the top when the lit element
-  // is down there. Fixed corners keep it on screen whatever the element's size.
   const cardStyle: React.CSSProperties = {}
   if (hole) {
     const roomBelow = window.innerHeight - (hole.top + hole.height)
-    if (roomBelow >= 210 || hole.top < 210) cardStyle.bottom = 16
+    const fitsBelow = roomBelow >= cardH + 32
+    const fitsAbove = hole.top >= cardH + 32
+    if (fitsBelow || roomBelow >= hole.top) cardStyle.bottom = 16
     else cardStyle.top = 16
+    // A target too tall for either side: park the card beside it if the screen is wide enough.
+    if (!fitsBelow && !fitsAbove) {
+      const cardW = Math.min(380, window.innerWidth - 32)
+      const roomRight = window.innerWidth - (hole.left + hole.width)
+      if (roomRight >= cardW + 32) Object.assign(cardStyle, { left: hole.left + hole.width + 16, transform: 'none' })
+      else if (hole.left >= cardW + 32) Object.assign(cardStyle, { left: hole.left - cardW - 16, transform: 'none' })
+    }
   }
+  // Off a phone the lit element can be the menu button instead of the sidebar's.
+  const body = step.menuBody && !findTarget('[data-tour="guide"]') ? step.menuBody : step.body
 
   const last = n === steps.length - 1
 
   return (
-    <div className="tour" role="dialog" aria-modal="true" aria-label="Guide">
-      <div className="tour-shade" onClick={close} />
+    <div className="tour" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-body">
+      {/* Swallows clicks so a stray tap can't end the guide; Skip and Escape do that. */}
+      <div className={`tour-shade${hole ? '' : ' dim'}`} />
       {hole && <div className="tour-hole" style={hole} />}
       <div className={`tour-card ${hole ? '' : 'middle'}`} style={cardStyle} ref={cardRef}>
         <div className="tour-step">Step {n + 1} of {steps.length}</div>
-        <h3>{step.title}</h3>
-        <p>{step.body}</p>
+        <h3 id="tour-title">{step.title}</h3>
+        <p id="tour-body">{body}</p>
         <div className="tour-actions">
           <button className="link-btn" onClick={close}>Skip</button>
           <div className="tour-buttons">

@@ -37,7 +37,7 @@ export default function Feedback({ data }: { data: AppData }) {
 
   return <>
     <TopBar user={data.user} />
-    <header className="page-head feedback-head">
+    <header className="page-head feedback-head" data-tour="feedback">
       <div className="page-head-text"><h1>Feedback Center</h1></div>
       {!selectedId && <button className="btn-primary feedback-new" onClick={() => setComposing(value => !value)} aria-expanded={composing}>
         <Icon name={composing ? 'close' : 'plus'} size={17} />{composing ? 'Cancel' : 'New report'}

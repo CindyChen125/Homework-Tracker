@@ -30,7 +30,7 @@ const events=new EventTarget(),documentEvents=new EventTarget()
 globalThis.window={ addEventListener:events.addEventListener.bind(events),removeEventListener:events.removeEventListener.bind(events),dispatchEvent:events.dispatchEvent.bind(events),setInterval,clearInterval,scrollTo(){},confirm:()=>true }
 globalThis.document={ documentElement:{ dataset:{ theme:'dark' } },visibilityState:'visible',addEventListener:documentEvents.addEventListener.bind(documentEvents),removeEventListener:documentEvents.removeEventListener.bind(documentEvents) }
 globalThis.location={ hash:'#/',replace(hash){ this.hash=hash; events.dispatchEvent(new Event('hashchange')) } }
-globalThis.localStorage={ getItem:key=>key==='hw-tour-seen'?'1':null,setItem(){} }
+globalThis.localStorage={ getItem:key=>key.startsWith('hw-tour-seen')?'1':null,setItem(){} }
 const reader={ id:'reader',email:'reader@synthetic.invalid',name:'Reader',role:'reader' }
 const record=name=>{ state.reads.push(name) }
 globalThis.authUiStore={

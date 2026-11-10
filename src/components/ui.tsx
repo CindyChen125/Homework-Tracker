@@ -49,7 +49,7 @@ export function TopBar({ user }: { user: Account | null }) {
   return (
     <div className="topbar">
       {navigation?.mode === 'phone' && <button ref={navigation.menuRef} className="icon-btn navigation-menu" onClick={navigation.toggle}
-        aria-label="Open navigation menu" aria-expanded={navigation.open} aria-controls="classboard-navigation" data-tour="help"><Icon name="menu" size={20} /></button>}
+        aria-label="Open navigation menu" aria-expanded={navigation.open} aria-controls="classboard-navigation" data-tour="menu"><Icon name="menu" size={20} /></button>}
       <Wordmark />
       <div className="topbar-right">
         {user && <RoleBadge role={user.role} />}

@@ -136,7 +136,7 @@ function DayList({ date, data, onEdit }: { date: string; data: AppData; onEdit: 
           Make-up school day for the {makeup.name} holiday. The school decides which day's lessons run — check with your teacher.
         </div>
       )}
-      {slots.map((s) => {
+      {slots.map((s, index) => {
         const color = s.subject ? subjectColor(s.subject) : 'var(--line)'
         const body = (
           <>
@@ -159,7 +159,7 @@ function DayList({ date, data, onEdit }: { date: string; data: AppData; onEdit: 
         )
         const cls = `slot ${s.change ? 'changed' : ''} ${s.subject === null ? 'cancelled' : ''}`
         return data.editor ? (
-          <button key={s.period.n} className={cls} onClick={() => onEdit(s.period.n)}>{body}</button>
+          <button key={s.period.n} className={cls} onClick={() => onEdit(s.period.n)} data-tour={index === 0 ? 'lessons' : undefined}>{body}</button>
         ) : (
           <div key={s.period.n} className={cls}>{body}</div>
         )
