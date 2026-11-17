@@ -23,6 +23,8 @@ registerHooks({
 })
 
 const user = { id: 'student-id', email: 'student@example.invalid' }
+const emptyClasses = { ec_class:null,ee_class:null,math_class:null }
+const classes = { ec_class:'EC(H)',ee_class:'EE(H)',math_class:'Math(S+1)' }
 let state
 globalThis.currentUserTestClient = {
   functions: {
@@ -106,7 +108,7 @@ test('successful profiles preserve all existing roles and separate news permissi
     for (const news_manager of [false, true]) {
       reset({ data: { ...user, name: 'Student', role, news_manager }, error: null })
       const account = await store.currentUser()
-      assert.deepEqual(account, { ...user, name: 'Student', role, news_manager })
+      assert.deepEqual(account, { ...user, name: 'Student', role, news_manager, ...emptyClasses })
       assert.equal(canEdit(account), role !== 'reader')
       assert.equal(isAdmin(account), role === 'admin')
     }
@@ -116,7 +118,8 @@ test('successful profiles preserve all existing roles and separate news permissi
 test('missing or unrecognized profile roles never grant editing', async () => {
   for (const role of [undefined, null, 'owner', 'ADMIN', '', true]) {
     reset({ data: { ...user, role }, error: null })
-    await assertReader()
+    const account = await store.currentUser()
+    assert.deepEqual(account, { ...user, name:null,role:'reader',news_manager:false,...emptyClasses })
   }
 })
 
@@ -165,8 +168,8 @@ test('signout is local and errors are not silently ignored', async () => {
 test('open registration sends only the display name, never permissions', async () => {
   reset()
   state.signupSession = { user }
-  assert.equal(await store.signUp('new@synthetic.invalid','synthetic-password','New reader'),undefined)
-  assert.deepEqual(state.signup,{ email:'new@synthetic.invalid',password:'synthetic-password',options:{ data:{ name:'New reader' },emailRedirectTo:'https://cindychen125.github.io/Homework-Tracker/' } })
+  assert.equal(await store.signUp('new@synthetic.invalid','synthetic-password','New reader',classes.ec_class,classes.ee_class,classes.math_class),undefined)
+  assert.deepEqual(state.signup,{ email:'new@synthetic.invalid',password:'synthetic-password',options:{ data:{ name:'New reader',...classes },emailRedirectTo:'https://cindychen125.github.io/Homework-Tracker/' } })
 })
 
 test('signup always redirects to the complete deployment root without altering verification or handling', async () => {
@@ -174,11 +177,11 @@ test('signup always redirects to the complete deployment root without altering v
   state.signupSession = { user }
   for (const href of ['https://cindychen125.github.io/Homework-Tracker/#/post', 'http://localhost:5199/#/']) {
     globalThis.location = new URL(href)
-    assert.equal(await store.signUp('new@synthetic.invalid', 'password', 'Reader'), undefined)
+    assert.equal(await store.signUp('new@synthetic.invalid', 'password', 'Reader',classes.ec_class,classes.ee_class,classes.math_class), undefined)
     const redirect = new URL(state.signup.options.emailRedirectTo)
     assert.equal(redirect.href, 'https://cindychen125.github.io/Homework-Tracker/')
     assert.equal(redirect.hash, '')
-    assert.deepEqual(state.signup.options.data, { name: 'Reader' })
+    assert.deepEqual(state.signup.options.data, { name: 'Reader',...classes })
   }
   state.signupSession = null
   await assert.rejects(() => store.signUp('new@synthetic.invalid', 'password', 'Reader'), /account was created.*could not sign you in/i)

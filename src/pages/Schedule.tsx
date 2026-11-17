@@ -20,7 +20,7 @@ function mondayOf(iso: string) {
 
 export default function Schedule({ data }: { data: AppData }) {
   const today = todayISO()
-  const [view, setView] = useState<'day' | 'week'>('day')
+  const [view, setView] = useState<'day' | 'week'>('week')
   const [weekStart, setWeekStart] = useState(() => mondayOf(today))
   const [selected, setSelected] = useState(() => (weekdayIndex(today) === null ? mondayOf(today) : today))
   const [editing, setEditing] = useState<{ date: string; period: number } | null>(null)
@@ -46,8 +46,8 @@ export default function Schedule({ data }: { data: AppData }) {
         </div>
         <div className="head-actions">
           <div className="switch">
-            <button className={view === 'day' ? 'on' : ''} onClick={() => setView('day')}>Day</button>
             <button className={view === 'week' ? 'on' : ''} onClick={() => setView('week')}>Week</button>
+            <button className={view === 'day' ? 'on' : ''} onClick={() => setView('day')}>Day</button>
           </div>
         </div>
       </header>

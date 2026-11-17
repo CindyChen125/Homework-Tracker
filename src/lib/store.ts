@@ -48,6 +48,9 @@ export interface Account {
   name: string | null
   role: Role
   news_manager?: boolean
+  ec_class?: string | null
+  ee_class?: string | null
+  math_class?: string | null
 }
 
 export interface DeleteUserResult {
@@ -84,7 +87,9 @@ export interface Store {
   subscribeAuth(listener: (signedIn: boolean) => void): () => void
   signIn(email: string, password: string): Promise<void>
   /** Creates a reader account. An admin can raise it to editor afterwards. */
-  signUp(email: string, password: string, name: string): Promise<void>
+  signUp(email: string, password: string, name: string, ecClass: string, eeClass: string, mathClass: string): Promise<void>
+  saveClasses(ecClass: string, eeClass: string, mathClass: string): Promise<void>
+  changePassword(password: string): Promise<void>
   signOut(): Promise<void>
   /** Everyone with an account, for the admin's People page. */
   people(): Promise<Account[]>
@@ -182,11 +187,26 @@ function supabaseStore(sb: SupabaseClient): Store {
       try {
         const { data: row, error } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle()
         if (error || !row) return reader
+        // Existing signed-in browsers must log in once after this release.
+        // The marker is per browser; the database fields remain the source of truth.
+        if ((!row.ec_class || !row.ee_class || !row.math_class) && typeof localStorage !== 'undefined') {
+          const marker = `classboard-classes-login-${user.id}`
+          try {
+            if (localStorage.getItem(marker) !== 'done') {
+              localStorage.setItem(marker, 'done')
+              check(await sb.auth.signOut({ scope: 'local' }))
+              return null
+            }
+          } catch { /* Storage may be disabled; the class-choice gate still applies. */ }
+        }
         return {
           ...reader,
           name: (row.name as string | null) ?? null,
           role: row.role === 'editor' || row.role === 'admin' ? row.role : 'reader',
           news_manager: row.news_manager === true,
+          ec_class: row.ec_class ?? null,
+          ee_class: row.ee_class ?? null,
+          math_class: row.math_class ?? null,
         }
       } catch {
         // Rejected/network requests must fail closed too.
@@ -196,16 +216,22 @@ function supabaseStore(sb: SupabaseClient): Store {
     async signIn(email, password) {
       check(await sb.auth.signInWithPassword({ email, password }))
     },
-    async signUp(email, password, name) {
+    async signUp(email, password, name, ecClass, eeClass, mathClass) {
       // Canonical GitHub Pages application root, not the account's root website.
       // No hash route here: Supabase uses the fragment to return session tokens.
       const res = check(await sb.auth.signUp({ email, password, options: {
-        data: { name },
+        data: { name, ec_class: ecClass, ee_class: eeClass, math_class: mathClass },
         emailRedirectTo: 'https://cindychen125.github.io/Homework-Tracker/',
       } }))
       if (!res.data.session) {
         throw new Error('Your account was created, but Classboard could not sign you in. Try signing in, and ask an administrator to confirm that email confirmation is disabled.')
       }
+    },
+    async saveClasses(ecClass, eeClass, mathClass) {
+      check(await sb.rpc('set_my_classes', { p_ec: ecClass, p_ee: eeClass, p_math: mathClass }))
+    },
+    async changePassword(password) {
+      check(await sb.auth.updateUser({ password }))
     },
     subscribeAuth(listener) {
       const { data } = sb.auth.onAuthStateChange((_event, session) => listener(!!session))
@@ -360,6 +386,8 @@ function demoStore(): Store {
     async signUp() {
       throw new Error('Connect Supabase to enable registration.')
     },
+    async saveClasses() { throw new Error('Connect Supabase to save classes.') },
+    async changePassword() { throw new Error('Connect Supabase to change your password.') },
     async signOut() {},
     async people() {
       return [

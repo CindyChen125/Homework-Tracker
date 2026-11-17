@@ -4,6 +4,7 @@ import Icon from '../components/Icon'
 import { ItemRow, SectionHeading, TopBar } from '../components/ui'
 import { addDays, daysBetween, nextSchoolDay, todayISO } from '../lib/dates'
 import { subjectBase, SUBJECT_SETS, subjectColor, subjectOptionLabel, OTHER_SUBJECT, TYPE_LABEL } from '../lib/homework'
+import { canSeeHomework } from '../lib/class-choices'
 import { store, type Item, type ItemType, type NewItem } from '../lib/store'
 
 const TYPES: ItemType[] = ['daily', 'project', 'test', 'other']
@@ -32,12 +33,12 @@ function Editor({ data }: { data: AppData }) {
   // Every class on the timetable is offered as a subject, so the usual ones are
   // there from the start; anything typed by hand joins them.
   const all = useMemo(
-    () => [...new Set([OTHER_SUBJECT, ...data.timetable.flat(), ...data.items.map((i) => i.subject)].filter((s): s is string => !!s))].sort(),
-    [data.timetable, data.items],
+    () => [...new Set([OTHER_SUBJECT, ...data.timetable.flat(), ...data.items.map((i) => i.subject)].filter((s): s is string => !!s && !!data.user && canSeeHomework(s, data.user)))].sort(),
+    [data.timetable, data.items, data.user],
   )
   // English, EC and maths are taught in sets, so each gets one chip that opens
   // its four classes rather than twelve chips crowding the row.
-  const sets = SUBJECT_SETS
+  const sets = SUBJECT_SETS.map(group => ({ ...group, options: group.options.filter(subject => !!data.user && canSeeHomework(subject, data.user)) }))
   const setLabels = new Set(sets.map((g) => g.label.toLowerCase()))
   const inASet = new Set(sets.flatMap((g) => g.options.map((o) => o.toLowerCase())))
   // A subject in one of the sets belongs behind its chip, never loose in the row.

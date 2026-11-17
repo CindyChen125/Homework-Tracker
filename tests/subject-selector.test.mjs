@@ -59,7 +59,7 @@ const text = node => typeof node === 'string' ? node : node.children.map(text).j
 const button = (root, name) => root.root.findAllByType('button').find(node => node.props.role !== 'radio' && text(node) === name)
 const groups = root => root.root.findAll(node => node.type === 'div' && node.props.role === 'group')
 const fixture = items => ({
-  editor: true, user: { id: 'editor', name: 'Editor', role: 'editor' },
+  editor: true, user: { id: 'editor', name: 'Editor', role: 'admin' },
   timetable: [['EC', 'EE', 'Math', 'Physics']], items,
   reload: async () => {}, reloadMaterials: async () => {}, materials: [], signOut: async () => {},
 })

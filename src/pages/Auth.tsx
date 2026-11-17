@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { store } from '../lib/store'
 import { ThemeToggle, Wordmark } from '../components/ui'
+import ClassFields from '../components/ClassFields'
+import { validClasses } from '../lib/class-choices'
 
 export default function Auth({ error, onAuthenticated, onSignOut }: {
   error: string | null
@@ -11,6 +13,9 @@ export default function Auth({ error, onAuthenticated, onSignOut }: {
   const [email, setEmail] = useState('')
   const [confirmEmail, setConfirmEmail] = useState('')
   const [name, setName] = useState('')
+  const [ecClass, setEcClass] = useState('')
+  const [eeClass, setEeClass] = useState('')
+  const [mathClass, setMathClass] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPasswords, setShowPasswords] = useState(false)
@@ -29,12 +34,13 @@ export default function Auth({ error, onAuthenticated, onSignOut }: {
       if (!confirmPassword) return setFormError('Confirm your password.')
       if (password !== confirmPassword) return setFormError('Passwords do not match.')
       if (password.length < 6) return setFormError('Password must be at least six characters.')
+      if (!validClasses(ecClass, eeClass, mathClass)) return setFormError('Choose your EC, EE, and Math classes.')
     }
     submitting.current = true
     setBusy(true)
     setFormError(null)
     try {
-      if (signingUp) await store.signUp(email.trim(), password, name.trim())
+      if (signingUp) await store.signUp(email.trim(), password, name.trim(), ecClass, eeClass, mathClass)
       else await store.signIn(email.trim(), password)
       await onAuthenticated()
     } catch (e) {
@@ -63,6 +69,7 @@ export default function Auth({ error, onAuthenticated, onSignOut }: {
                   <button type="button" aria-pressed={signingUp} className={signingUp ? 'on' : ''} onClick={() => { setMode('up'); setFormError(null) }}>Sign up</button>
                 </div>
                 {signingUp && <label className="field"><span className="field-label">Your name</span><input autoComplete="name" maxLength={80} value={name} onChange={e => setName(e.target.value)} required /></label>}
+                {signingUp && <ClassFields ec={ecClass} ee={eeClass} math={mathClass} onEc={setEcClass} onEe={setEeClass} onMath={setMathClass} />}
                 <label className="field"><span className="field-label">Email</span><input type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} required /></label>
                 {signingUp && <label className="field"><span className="field-label">Confirm email</span><input type="email" autoComplete="email" value={confirmEmail} onChange={e => setConfirmEmail(e.target.value)} required /></label>}
                 <label className="field"><span className="field-label">Password</span><input type={showPasswords ? 'text' : 'password'} autoComplete={signingUp ? 'new-password' : 'current-password'} minLength={6} value={password} onChange={e => setPassword(e.target.value)} required />{signingUp && <span className="small muted">At least six characters. New accounts start as Readers.</span>}</label>

@@ -66,6 +66,7 @@ const PATHS = {
   ),
   chat: <path d="M21 11.5a8.5 8.5 0 0 1-11 7.4L4 21l1.6-4.6A8.5 8.5 0 1 1 21 11.5Z" />,
   feedback: <><path d="M21 11.5a8.5 8.5 0 0 1-11 7.4L4 21l1.6-4.6A8.5 8.5 0 1 1 21 11.5Z" /><path d="M12 7.5v5M12 16.2h.01" /></>,
+  settings: <><path d="M4 7h16M4 17h16" /><circle cx="9" cy="7" r="2" fill="var(--surface)" /><circle cx="15" cy="17" r="2" fill="var(--surface)" /></>,
   clock: (
     <>
       <circle cx="12" cy="12" r="8.5" />

@@ -880,6 +880,16 @@ button.week-cell:hover { background: var(--surface-2); }
 .auth-fields { display: flex; flex-direction: column; gap: 18px; border: 0; margin: 0; padding: 0; min-width: 0; }
 .auth-page .signin-body { padding-top: 40px; }
 .auth-page input { font-size: 16px; }
+.auth-page select { width: 100%; min-height: 44px; font: inherit; font-size: 16px; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.settings-stack { display: grid; gap: 28px; max-width: 680px; padding-bottom: 48px; }
+.settings-section { border-top: 1px solid var(--line); padding-top: 20px; }
+.settings-section h2 { margin: 0 0 16px; font-size: 1.2rem; }
+.settings-section .seg { max-width: 260px; }
+.settings-section .field select { width: 100%; min-height: 44px; font: inherit; font-size: 16px; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.settings-account { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.settings-account p { margin: 5px 0 0; overflow-wrap: anywhere; }
+.settings-form { max-width: 480px; }
+.settings-form .btn-primary { align-self: flex-start; }
 .material-download { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .material-download button, .material-download a { min-height: 44px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
@@ -914,7 +924,7 @@ button.week-cell:hover { background: var(--surface-2); }
 .sidebar[data-expanded='false'] { width: 60px; }
 .sidebar[data-visible='false'] { transform: translateX(-100%); visibility: hidden; pointer-events: none; transition: width 180ms ease-out, transform 180ms ease-out, visibility 0s 180ms; }
 .sidebar-header { position: relative; height: 44px; flex: 0 0 44px; margin: 0 8px; }
-.sidebar .sidebar-row, .sidebar .theme-row {
+.sidebar .sidebar-row {
   display: grid;
   grid-template-columns: 44px 144px;
   column-gap: 8px;
@@ -932,7 +942,7 @@ button.week-cell:hover { background: var(--surface-2); }
   font: 500 15px/1.4 var(--sans);
   text-align: left;
 }
-.sidebar-row > svg, .sidebar .theme-row > svg { grid-column: 1; justify-self: center; flex: none; }
+.sidebar-row > svg { grid-column: 1; justify-self: center; flex: none; }
 .sidebar-label { grid-column: 2; white-space: nowrap; transition: opacity 120ms ease-out; }
 .sidebar[data-expanded='false'] .sidebar-label { opacity: 0; visibility: hidden; }
 .sidebar .sidebar-toggle { width: 44px; margin: 0; grid-template-columns: 44px; }
@@ -944,7 +954,6 @@ button.week-cell:hover { background: var(--surface-2); }
 .sidebar .sidebar-row.active:hover { background: var(--accent-soft); color: var(--accent-ink); }
 .sidebar :is(a, button, [tabindex='0']):focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .sidebar-bottom { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; margin-top: auto; }
-.sidebar-theme { flex-shrink: 0; min-height: 44px; }
 .sidebar-account > .sidebar-label { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; min-width: 0; max-width: 144px; }
 .sidebar-account-name { display: block; width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 12px; line-height: 18px; color: var(--muted); }
 .sidebar-account .role-badge { padding: 0; background: transparent; font-size: 12px; line-height: 18px; }

@@ -31,19 +31,22 @@ globalThis.window={ addEventListener:events.addEventListener.bind(events),remove
 globalThis.document={ documentElement:{ dataset:{ theme:'dark' } },visibilityState:'visible',addEventListener:documentEvents.addEventListener.bind(documentEvents),removeEventListener:documentEvents.removeEventListener.bind(documentEvents) }
 globalThis.location={ hash:'#/',replace(hash){ this.hash=hash; events.dispatchEvent(new Event('hashchange')) } }
 globalThis.localStorage={ getItem:key=>key.startsWith('hw-tour-seen')?'1':null,setItem(){} }
-const reader={ id:'reader',email:'reader@synthetic.invalid',name:'Reader',role:'reader' }
+const classes={ ec_class:'EC(H)',ee_class:'EE(H)',math_class:'Math(S+1)' }
+const reader={ id:'reader',email:'reader@synthetic.invalid',name:'Reader',role:'reader',...classes }
 const record=name=>{ state.reads.push(name) }
 globalThis.authUiStore={
   mode:'supabase',
   currentUser:()=>state.lookup(),
   subscribeAuth:fn=>{ listener=fn; return()=>{ listener=null } },
   signIn:async()=>{ if(state.signInError) throw Error('Invalid credentials'); state.lookup=async()=>reader; listener(true) },
-  signUp:async(email,password,name)=>{
-    state.signup={ email,password,name }; state.signupCalls=(state.signupCalls??0)+1
+  signUp:async(email,password,name,ec,ee,math)=>{
+    state.signup={ email,password,name,ec,ee,math }; state.signupCalls=(state.signupCalls??0)+1
     if(state.signupPending) await state.signupPending
     state.lookup=async()=>reader; listener(true)
   },
   signOut:async()=>{ state.lookup=async()=>null; listener(false) },
+  saveClasses:async(ec,ee,math)=>{ state.savedClasses={ec,ee,math}; state.lookup=async()=>({...reader,ec_class:ec,ee_class:ee,math_class:math}) },
+  changePassword:async password=>{ state.passwordChange=password },
   list:async()=>{ record('items'); return [] },materials:async()=>{ record('materials'); return [] },
   timetable:async()=>{ record('timetable'); return Array.from({ length:5 },()=>Array(9).fill(null)) },changes:async()=>{ record('changes'); return [] },
   people:async()=>{ record('people'); return state.people??[] },
@@ -56,6 +59,7 @@ const { default:App }=await import('../src/App.tsx')
 const { default:Post }=await import('../src/pages/Post.tsx')
 const { default:People }=await import('../src/pages/People.tsx')
 const { default:Feedback }=await import('../src/pages/Feedback.tsx')
+const { default:Settings }=await import('../src/pages/Settings.tsx')
 const reset=(account=null)=>{ state={ lookup:async()=>account,reads:[] }; location.hash='#/' }
 const text=root=>JSON.stringify(root.toJSON())
 async function mount(){ let root; await act(async()=>{ root=renderer.create(React.createElement(App)) }); return root }
@@ -124,6 +128,45 @@ test('reader/editor/admin direct routes enforce interface permissions',async()=>
   }
 })
 
+test('existing account chooses classes once before class data loads',async()=>{
+  reset({...reader,ec_class:null,ee_class:null,math_class:null})
+  const root=await mount()
+  try {
+    assert.match(text(root),/Choose your classes/)
+    assert.deepEqual(state.reads,[])
+    const selects=root.root.findAllByType('select')
+    assert.equal(selects.length,3)
+    await act(async()=>{
+      for(const [select,value] of selects.map((select,index)=>[select,['EC(S+1)','EE(S+2)','Math(S+3)'][index]])) select.props.onChange({target:{value}})
+    })
+    await act(async()=>root.root.findByType('form').props.onSubmit({preventDefault(){}}))
+    assert.deepEqual(state.savedClasses,{ec:'EC(S+1)',ee:'EE(S+2)',math:'Math(S+3)'})
+    assert.match(text(root),/Coming Up/)
+  } finally { await close(root) }
+})
+
+test('Settings lets a signed-in user correct classes and change password',async()=>{
+  reset(reader)
+  let refreshed=0
+  let root
+  await act(async()=>{ root=renderer.create(React.createElement(Settings,{user:reader,onSaved:async()=>{refreshed++}})) })
+  try {
+    const selects=root.root.findAllByType('select')
+    assert.equal(selects.length,3)
+    await act(async()=>selects[0].props.onChange({target:{value:'EC(S+2)'}}))
+    await act(async()=>root.root.findAllByType('form')[0].props.onSubmit({preventDefault(){}}))
+    assert.deepEqual(state.savedClasses,{ec:'EC(S+2)',ee:'EE(H)',math:'Math(S+1)'})
+    assert.equal(refreshed,1)
+    const passwords=root.root.findAllByType('input')
+    await act(async()=>{ passwords[0].props.onChange({target:{value:'newpassword'}}); passwords[1].props.onChange({target:{value:'mismatch'}}) })
+    await act(async()=>root.root.findAllByType('form')[1].props.onSubmit({preventDefault(){}}))
+    assert.equal(state.passwordChange,undefined)
+    await act(async()=>passwords[1].props.onChange({target:{value:'newpassword'}}))
+    await act(async()=>root.root.findAllByType('form')[1].props.onSubmit({preventDefault(){}}))
+    assert.equal(state.passwordChange,'newpassword')
+  } finally { await close(root) }
+})
+
 test('admin deletion confirms, prevents self/last-admin deletion, and refreshes People',async()=>{
   const admin={ id:'admin',email:'admin@synthetic.invalid',name:'Admin',role:'admin' }
   const otherAdmin={ id:'other-admin',email:'other-admin@synthetic.invalid',name:'Other Admin',role:'admin' }
@@ -174,7 +217,9 @@ test('matching signup confirmations create an immediate session without an email
   try {
     await act(async()=>root.root.findAllByType('button').find(b=>b.children.join('')==='Sign up').props.onClick())
     const inputs=root.root.findAllByType('input')
+    const selects=root.root.findAllByType('select')
     await act(async()=>{
+      for(const [select,value] of selects.map((select,index)=>[select,['EC(H)','EE(H)','Math(S+1)'][index]])) select.props.onChange({target:{value}})
       inputs[0].props.onChange({ target:{ value:'New student' } })
       inputs[1].props.onChange({ target:{ value:'  New@Synthetic.Invalid  ' } })
       inputs[2].props.onChange({ target:{ value:'new@synthetic.invalid' } })
@@ -182,7 +227,7 @@ test('matching signup confirmations create an immediate session without an email
       inputs[4].props.onChange({ target:{ value:'synthetic-password' } })
     })
     await act(async()=>root.root.findByType('form').props.onSubmit({ preventDefault(){} }))
-    assert.deepEqual(state.signup,{ email:'New@Synthetic.Invalid',password:'synthetic-password',name:'New student' })
+    assert.deepEqual(state.signup,{ email:'New@Synthetic.Invalid',password:'synthetic-password',name:'New student',ec:'EC(H)',ee:'EE(H)',math:'Math(S+1)' })
     assert.match(text(root),/Coming Up/)
     assert.doesNotMatch(text(root),/Check your email/)
   } finally { await close(root) }
@@ -220,6 +265,7 @@ test('password visibility is keyboard-operable and a busy signup cannot submit t
     await act(async()=>root.root.findAllByType('button').find(b=>b.children.join('')==='Sign up').props.onClick())
     const inputs=root.root.findAllByType('input')
     await act(async()=>{
+      for(const [select,value] of root.root.findAllByType('select').map((select,index)=>[select,['EC(H)','EE(H)','Math(S+1)'][index]])) select.props.onChange({target:{value}})
       for(const [input,value] of inputs.map((input,index)=>[input,['Student','s@invalid.test','s@invalid.test','password','password'][index]])) input.props.onChange({ target:{ value } })
       root.root.findAllByType('button').find(b=>b.children.join('')==='Show password').props.onClick()
     })
@@ -276,7 +322,7 @@ test('unified navigation preserves role filtering and accurate badges at every r
     try {
       const nav=root.root.findByProps({ 'aria-label':'Main navigation' })
       const hrefs=nav.findAllByType('a').map(link=>link.props.href)
-      assert.deepEqual(hrefs,['#/','#/schedule','#/school-calendar','#/materials','#/news','#/feedback',...(role!=='reader'?['#/post']:[]),...(role==='admin'?['#/people']:[])])
+      assert.deepEqual(hrefs,['#/','#/schedule','#/school-calendar','#/materials','#/news','#/feedback','#/settings',...(role!=='reader'?['#/post']:[]),...(role==='admin'?['#/people']:[])])
       const badges=root.root.findAll(node=>node.type==='span' && node.props['data-role'])
       assert.ok(badges.length>=2)
       for(const badge of badges) {

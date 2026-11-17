@@ -4,7 +4,7 @@ import type { Account } from '../lib/store'
 import { initialSidebarState, readSidebarPreferences, saveSidebarPreference, sidebarLayout, sidebarReducer } from '../lib/sidebar'
 import { activateSidebarOverlay } from '../lib/sidebar-overlay'
 import Icon, { type IconName } from './Icon'
-import { ThemeToggle, Wordmark } from './ui'
+import { Wordmark } from './ui'
 import RoleBadge from './RoleBadge'
 import { SidebarContext } from './SidebarContext'
 
@@ -108,7 +108,6 @@ export default function Sidebar({ user, items, route, onGuide, guideOpen, signOu
         </nav>
         <div className="sidebar-bottom">
           <button className="sidebar-row" data-tour="guide" onClick={() => { close(); onGuide() }} aria-label="Open the guide" {...hint('Guide')}><Icon name="help" size={20} /><span className="sidebar-label">Guide</span></button>
-          <div className="sidebar-theme" {...hint('Switch theme')}><ThemeToggle row /></div>
           <div className="sidebar-account sidebar-row" role="group" tabIndex={0} aria-label={accountLabel} {...hint(accountLabel)}>
             <Icon name="user" size={20} /><span className="sidebar-label"><span className="sidebar-account-name">{user.name || user.email}</span><RoleBadge role={user.role} /></span>
           </div>

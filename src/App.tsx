@@ -16,12 +16,15 @@ import { schoolToday, type BirthdayGreeting, type NewsItem } from './lib/news'
 import { NewsSetupError } from './lib/news-store'
 import Tour, { tourSeen } from './components/Tour'
 import Auth from './pages/Auth'
+import ChooseClasses from './pages/ChooseClasses'
+import Settings from './pages/Settings'
 import { createAuthSession } from './lib/auth-session'
 import { canAccessRoute } from './lib/access'
+import { visibleHomework } from './lib/class-choices'
 
 // Hash routing: works on any static host and inside WeChat's browser.
-type Route = 'today' | 'schedule' | 'materials' | 'post' | 'people' | 'school-calendar' | 'news' | 'feedback'
-const ROUTES: Route[] = ['today', 'schedule', 'materials', 'post', 'people', 'school-calendar', 'news', 'feedback']
+type Route = 'today' | 'schedule' | 'materials' | 'post' | 'people' | 'school-calendar' | 'news' | 'feedback' | 'settings'
+const ROUTES: Route[] = ['today', 'schedule', 'materials', 'post', 'people', 'school-calendar', 'news', 'feedback', 'settings']
 const readRoute = (): Route => {
   const r = location.hash.replace(/^#\/?/, '').split('?')[0] as Route
   return ROUTES.includes(r) ? r : 'today'
@@ -57,6 +60,7 @@ const NAV: { route: Route; href: string; label: string; icon: IconName; editorOn
   { route: 'materials', href: '#/materials', label: 'Files', icon: 'folder' },
   { route: 'news', href: '#/news', label: 'News', icon: 'chat' },
   { route: 'feedback', href: '#/feedback', label: 'Feedback', icon: 'feedback' },
+  { route: 'settings', href: '#/settings', label: 'Settings', icon: 'settings' },
   { route: 'post', href: '#/post', label: 'Add', icon: 'plus', editorOnly: true },
   { route: 'people', href: '#/people', label: 'People', icon: 'user', adminOnly: true },
 ]
@@ -70,6 +74,7 @@ const TITLES: Record<Route, string> = {
   'school-calendar': 'School Calendar · Classboard',
   news: 'Class News · Classboard',
   feedback: 'Feedback Center · Classboard',
+  settings: 'Settings · Classboard',
 }
 
 export default function App() {
@@ -85,11 +90,12 @@ export default function App() {
     </main>
   )
   if (!auth.user) return <Auth error={auth.error} onAuthenticated={session.refresh} onSignOut={session.signOut} />
-  return <Classroom key={`${auth.user.id}-${auth.user.role}-${!!auth.user.news_manager}`} user={auth.user} signOut={session.signOut} />
+  if (!auth.user.ec_class || !auth.user.ee_class || !auth.user.math_class) return <ChooseClasses onSaved={session.refresh} onSignOut={session.signOut} />
+  return <Classroom key={`${auth.user.id}-${auth.user.role}-${!!auth.user.news_manager}`} user={auth.user} signOut={session.signOut} refreshUser={session.refresh} />
 }
 
 /** Mounted only after authentication; unmounting clears all fetched class data. */
-function Classroom({ user, signOut }: { user: Account; signOut: () => Promise<void> }) {
+function Classroom({ user, signOut, refreshUser }: { user: Account; signOut: () => Promise<void>; refreshUser: () => Promise<void> }) {
   const [requestedRoute, setRoute] = useState<Route>(readRoute)
   const route = canAccessRoute(user, requestedRoute) ? requestedRoute : 'today'
   const [items, setItems] = useState<Item[]>([])
@@ -112,14 +118,14 @@ function Classroom({ user, signOut }: { user: Account; signOut: () => Promise<vo
 
   const reload = useCallback(async () => {
     try {
-      setItems(await store.list())
+      setItems(visibleHomework(await store.list(), user))
       setError(null)
     } catch (e) {
       fail(e)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [user])
 
   const reloadSchedule = useCallback(async () => {
     try {
@@ -228,6 +234,7 @@ function Classroom({ user, signOut }: { user: Account; signOut: () => Promise<vo
         {route === 'school-calendar' && <SchoolCalendar data={data} />}
         {route === 'news' && <News data={data} />}
         {route === 'feedback' && <Feedback data={data} />}
+        {route === 'settings' && <Settings user={user} onSaved={refreshUser} />}
       </main>
       {tour && <Tour userId={user.id} editor={editor} admin={isAdmin(user)} onClose={() => setTour(false)} />}
     </Sidebar>

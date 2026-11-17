@@ -189,7 +189,7 @@ test('opening the guide releases a saved tablet overlay instead of trapping the 
   } finally { await app.close() }
 })
 
-test('collapsed tooltips work on keyboard focus, both themes work, and actual Admin role is retained',async()=>{
+test('collapsed tooltips work on keyboard focus and actual Admin role is retained',async()=>{
   prepare(768); const app=await mount()
   try {
     await act(async()=>q('.sidebar-nav a').focus())
@@ -197,10 +197,7 @@ test('collapsed tooltips work on keyboard focus, both themes work, and actual Ad
     assert.equal(q('.sidebar-nav a').getAttribute('aria-describedby'),q('[role="tooltip"]').id)
     assert.equal(q('.sidebar-nav a').getAttribute('aria-label'),'Today')
     for(const badge of all('[data-role]')) { assert.equal(badge.dataset.role,'admin'); assert.equal(badge.textContent,'Admin') }
-    await click(q('.theme-row'))
-    assert.equal(document.documentElement.dataset.theme,'dark')
-    assert.equal(q('.theme-row').getAttribute('aria-label'),'Switch to light mode')
-    await click(q('.theme-row')); assert.equal(document.documentElement.dataset.theme,'light')
+    assert.equal(q('.theme-row'),null)
     await click(q('.sidebar [aria-label="Sign out"]')); assert.equal(app.signouts(),1)
   } finally { await app.close() }
 })
