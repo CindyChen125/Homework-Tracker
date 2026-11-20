@@ -135,6 +135,7 @@ export default function Tour({ userId, editor, admin, onClose }: { userId: strin
 
   const close = useCallback(() => {
     markSeen(userId)
+    location.hash = '#/'
     onClose()
   }, [onClose, userId])
 

@@ -120,6 +120,7 @@ const FIXED: Record<string, string> = {
   geography: '#73DACA',
   pe: '#5BC8E8',
   art: '#F7768E',
+  arts: '#F7768E',
   it: '#7DCFFF',
   optional: '#A0A8B4',
   club: '#BB9AF7',

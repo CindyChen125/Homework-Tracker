@@ -66,14 +66,26 @@ test('Back to a Today step really returns to Today, and opening from another pag
 })
 
 test('clicking the dimmed area does not end the guide; Skip does, and is remembered per account', async () => {
-  await open({ userId: 'one' })
+  await open({ hash: '#/feedback', userId: 'one' })
   await click(q('.tour-shade'))
   assert.equal(closed, 0)
   assert.equal(tourSeen('one'), false)
   await click([...document.querySelectorAll('.tour-card button')].find((b) => b.textContent === 'Skip'))
   assert.equal(closed, 1)
+  assert.equal(location.hash, '#/')
   assert.equal(tourSeen('one'), true)
   assert.equal(tourSeen('two'), false)
+  await shut()
+})
+
+test('finishing the guide returns to Today from its final page', async () => {
+  await open()
+  const total = Number(q('.tour-step').textContent.match(/of (\d+)/)[1])
+  for (let i = 1; i < total; i++) await next()
+  assert.equal(location.hash, '#/feedback')
+  await next()
+  assert.equal(closed, 1)
+  assert.equal(location.hash, '#/')
   await shut()
 })
 

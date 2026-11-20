@@ -12,17 +12,17 @@ export interface Period {
   wedOnly?: boolean
 }
 
-/** Bell times, SSBS 小学/初中. Period 5–6 on Friday keep these times; Friday ends after period 6. */
+/** Bell times, SSBS 小学/初中. Each period lasts 40 minutes. */
 export const PERIODS: Period[] = [
-  { n: 1, start: '8:30', end: '9:10' },
-  { n: 2, start: '9:25', end: '10:05' },
-  { n: 3, start: '10:20', end: '11:00' },
-  { n: 4, start: '11:15', end: '11:55' },
-  { n: 5, start: '12:40', end: '13:20' },
-  { n: 6, start: '13:35', end: '14:15' },
-  { n: 7, start: '14:30', end: '15:10' },
-  { n: 8, start: '15:25', end: '16:05' },
-  { n: 9, start: '16:15', end: '16:55', wedOnly: true },
+  { n: 1, start: '8:20', end: '9:00' },
+  { n: 2, start: '9:15', end: '9:55' },
+  { n: 3, start: '10:25', end: '11:05' },
+  { n: 4, start: '11:20', end: '12:00' },
+  { n: 5, start: '12:45', end: '13:25' },
+  { n: 6, start: '13:40', end: '14:20' },
+  { n: 7, start: '14:35', end: '15:15' },
+  { n: 8, start: '15:30', end: '16:10' },
+  { n: 9, start: '16:20', end: '17:00', wedOnly: true },
 ]
 
 export const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
@@ -30,15 +30,15 @@ export const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'
 /** G8 (5), room 307 — one entry per period 1–9, null where there is no class. */
 export const DEFAULT_TIMETABLE: (string | null)[][] = [
   // Monday
-  ['Biology', 'Chinese', 'Optional', 'Math', 'Civics', 'English', 'English', 'PE', null],
+  ['Biology', 'Chinese', 'PE', 'Math', 'Civics', 'English', 'English', 'Optional', null],
   // Tuesday
-  ['Physics', 'Art', 'English', 'English', 'Chinese', 'PE', 'Math', 'Math', null],
+  ['PE', 'Biology', 'English', 'English', 'Math', 'Math', 'Chinese', 'PE', null],
   // Wednesday
-  ['Chinese', 'Chinese', 'Math', 'PE', 'English', 'English', 'IT', 'Chemistry', 'Club'],
+  ['Chinese', 'Chinese', 'Math', 'PE', 'English', 'English', 'Physics', 'Chemistry', 'Club'],
   // Thursday
-  ['Biology', 'English', 'English', 'PE', 'History', 'Physics', 'Chinese', 'Math', null],
+  ['Chemistry', 'English', 'History', 'PE', 'IT', 'Physics', 'Chinese', 'Math', null],
   // Friday
-  ['Civics', 'Physics', 'English', 'English', 'Chinese', 'Math', null, null, null],
+  ['Civics', 'Physics', 'English', 'English', 'Arts', 'Chinese', 'Math', 'PG', null],
 ]
 
 export const CLASS_INFO = { grade: 'G8 (5)', room: '307', teacher: 'Ms. Monica', term: '2026 · Term 1' }
